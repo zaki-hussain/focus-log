@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#0B0B0C">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0B0B0C"/>
+    <text x="600" y="430" text-anchor="middle" font-family="monospace" font-size="150" fill="#6FD6E8">60:00</text>
+    <rect x="450" y="520" width="300" height="70" rx="35" fill="#6FD6E8"/>
+  </svg>
+</template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&amp;family=Karla:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+:root { --bg:#0B0B0C; --canvas:#141416; --ink:#E8E8E3; --dim:#7A7A74; --faint:#333336; --line:#26262A; --accent:#6FD6E8; --pre:#A8837B; --good:#46C878; --fail:#D9604F; }
+html, body { margin:0; padding:0; background:#141416; }
+a { color:#6FD6E8; text-decoration:none; }
+a:hover { color:#E8E8E3; }
+input { outline:none; }
+button { cursor:pointer; }
+::-webkit-scrollbar { width:0; height:0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:var(--canvas); display:flex; gap:48px; justify-content:center; align-items:flex-start; padding:48px 32px; font-family:'Karla', sans-serif">
+  <sc-for list="{{ panes }}" as="pane" hint-placeholder-count="2">
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <div style="font-size:11px; letter-spacing:1px; color:#5A5A56">Focus Log · {{ pane.title }}</div>
+      <div data-screen-label="{{ pane.title }}" onPointerDown="{{ pane.sd }}" onPointerUp="{{ pane.su }}" style="width:390px; height:844px; background:var(--bg); border:1px solid var(--line); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; color:var(--ink); user-select:none">
+        <div style="height:40px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--dim); flex:none">
+          <span>{{ clockNow }}</span>
+          <span>NET · 82%</span>
+        </div>
+
+        <sc-if value="{{ pane.isClock }}" hint-placeholder-val="{{ true }}">
+          <sc-if value="{{ isIdle }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1; display:flex; flex-direction:column; padding:20px 24px 20px; min-height:0">
+              <div style="display:flex; justify-content:space-between; align-items:baseline">
+                <span style="font-size:18px; letter-spacing:0.5px; color:var(--ink); font-weight:700">Focus Log</span>
+                <button onClick="{{ pane.goStats }}" style="background:none; border:none; font-family:inherit; font-size:13px; letter-spacing:0.5px; color:var(--dim); padding:4px 0" style-hover="color:var(--ink)">Stats →</button>
+              </div>
+              <div style="margin-top:44px; font-size:14px; letter-spacing:0.5px; color:var(--ink); font-weight:600">Minimum</div>
+              <sc-if value="{{ editingMin }}" hint-placeholder-val="{{ false }}">
+                <input value="{{ minInput }}" onChange="{{ minInputChange }}" onKeyDown="{{ minInputKey }}" onBlur="{{ minInputBlur }}" autoFocus="{{ true }}" inputMode="numeric" style="margin-top:8px; width:170px; background:transparent; border:none; border-bottom:1px solid var(--accent); font-family:'JetBrains Mono', monospace; font-size:48px; font-weight:300; color:var(--ink); padding:0">
+              </sc-if>
+              <sc-if value="{{ notEditingMin }}" hint-placeholder-val="{{ true }}">
+                <div onPointerDown="{{ minDown }}" onPointerMove="{{ minMove }}" onPointerUp="{{ minUp }}" style="margin-top:6px; font-family:'JetBrains Mono', monospace; font-size:56px; font-weight:300; color:var(--ink); line-height:1.1; cursor:ew-resize; touch-action:none; width:max-content">{{ minDisplay }}</div>
+              </sc-if>
+              <div style="margin-top:6px; font-size:12px; color:#4A4A46">Drag to adjust · Tap to type</div>
+              <div style="margin-top:20px; display:flex; gap:8px">
+                <sc-for list="{{ presets }}" as="p" hint-placeholder-count="4">
+                  <button onClick="{{ p.pick }}" style="background:none; border:1px solid {{ p.bc }}; color:{{ p.fc }}; font-family:inherit; font-size:14px; padding:10px 16px; letter-spacing:0.5px; min-width:44px; border-radius:18px">{{ p.label }}</button>
+                </sc-for>
+              </div>
+              <div style="margin-top:40px; font-size:14px; letter-spacing:0.5px; color:var(--ink); font-weight:600">Tag · Optional</div>
+              <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+                <sc-for list="{{ tagChips }}" as="t" hint-placeholder-count="3">
+                  <button onClick="{{ t.pick }}" style="background:none; border:1px solid {{ t.bc }}; color:{{ t.fc }}; font-family:inherit; font-size:14px; padding:10px 16px; letter-spacing:0.5px; border-radius:18px">{{ t.name }}</button>
+                </sc-for>
+                <sc-if value="{{ addingTag }}" hint-placeholder-val="{{ false }}">
+                  <input value="{{ tagInput }}" onChange="{{ tagInputChange }}" onKeyDown="{{ tagInputKey }}" onBlur="{{ tagInputBlur }}" autoFocus="{{ true }}" placeholder="new tag" style="background:transparent; border:none; border-bottom:1px solid var(--accent); color:var(--ink); font-family:inherit; font-size:14px; padding:10px 0; width:110px">
+                </sc-if>
+                <sc-if value="{{ notAddingTag }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ addTagStart }}" style="background:none; border:1px solid var(--line); color:var(--dim); font-family:inherit; font-size:14px; padding:10px 16px; border-radius:18px">+</button>
+                </sc-if>
+              </div>
+              <div style="flex:1"></div>
+              <button onClick="{{ start }}" style="height:96px; width:100%; background:var(--accent); color:#07171B; border:none; font-family:inherit; font-size:24px; font-weight:500; letter-spacing:2px; border-radius:28px" style-active="transform:translateY(1px)">Start</button>
+              <div style="margin-top:16px; text-align:center; font-size:12px; color:var(--dim); letter-spacing:0.5px">Today {{ todayLabel }} · This week {{ weekLabel }}</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ isRunning }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1; display:flex; flex-direction:column; padding:20px 24px 20px; min-height:0">
+              <div style="font-size:18px; letter-spacing:0.5px; color:var(--dim); font-weight:700">Focus Log</div>
+              <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:16px">
+                <div style="font-family:'JetBrains Mono', monospace; font-size:{{ digitSize }}; font-weight:300; color:{{ digitColor }}; letter-spacing:2px; font-variant-numeric:tabular-nums">{{ elapsed }}</div>
+                <div style="font-family:'JetBrains Mono', monospace; font-size:14px; color:var(--dim); letter-spacing:0.5px">{{ minLabel }}</div>
+                <sc-if value="{{ hasActiveTag }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:14px; color:var(--accent); letter-spacing:0.5px">{{ activeTag }}</div>
+                </sc-if>
+              </div>
+              <sc-if value="{{ pastMin }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ stop }}" style="height:96px; width:100%; background:var(--good); color:#071509; border:none; font-family:inherit; font-size:24px; font-weight:500; letter-spacing:2px; border-radius:28px" style-active="transform:translateY(1px)">Stop</button>
+              </sc-if>
+              <sc-if value="{{ inGrace }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:42px 0">
+                  <button onClick="{{ cancelSession }}" style="background:none; border:1px solid var(--line); color:var(--dim); font-family:inherit; font-size:13px; letter-spacing:1px; padding:14px 28px; border-radius:20px" style-hover="color:var(--ink); border-color:var(--dim)">Cancel</button>
+                  <div style="font-size:11px; color:#4A4A46">Within 30s — won't be logged</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ afterGrace }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; justify-content:center; padding:56px 0">
+                  <button onClick="{{ terminate }}" style="background:none; border:1px solid var(--line); color:var(--dim); font-family:inherit; font-size:13px; letter-spacing:1px; padding:14px 28px; border-radius:20px" style-hover="color:var(--ink); border-color:var(--dim)">Terminate</button>
+                </div>
+              </sc-if>
+              <div style="margin-top:16px; text-align:center; font-size:12px; color:var(--dim); letter-spacing:0.5px">Today {{ todayLabel }} · This week {{ weekLabel }}</div>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ pane.isStats }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1; display:flex; flex-direction:column; min-height:0">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding:20px 24px 0; flex:none">
+              <button onClick="{{ pane.goClock }}" style="background:none; border:none; font-family:inherit; font-size:13px; letter-spacing:0.5px; color:var(--dim); padding:4px 0" style-hover="color:var(--ink)">← Clock</button>
+              <span style="font-size:18px; letter-spacing:0.5px; font-weight:700">Stats</span>
+              <button onClick="{{ exportLog }}" style="background:none; border:none; font-family:inherit; font-size:13px; letter-spacing:0.5px; color:var(--dim); padding:4px 0" style-hover="color:var(--accent)">Export</button>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:28px 24px 24px; min-height:0">
+              <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:4px">
+                <sc-for list="{{ totals }}" as="t" hint-placeholder-count="5">
+                  <div style="display:flex; flex-direction:column; gap:6px">
+                    <div style="font-size:11px; letter-spacing:0.5px; color:var(--dim)">{{ t.l }}</div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--ink)">{{ t.v }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="margin-top:36px; display:flex; justify-content:space-between; align-items:baseline">
+                <span style="font-size:13px; letter-spacing:0.5px; color:var(--ink); font-weight:600">By hour of day</span>
+                <div style="display:flex; gap:10px">
+                  <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="5">
+                    <button onClick="{{ r.pick }}" style="background:none; border:none; font-family:inherit; font-size:11px; color:{{ r.fc }}; padding:2px 0">{{ r.l }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="margin-top:12px; display:flex; align-items:flex-end; gap:2px; height:64px">
+                <sc-for list="{{ hourBars }}" as="b" hint-placeholder-count="24">
+                  <div style="flex:1; background:{{ b.c }}; height:{{ b.h }}; min-height:2px; border-radius:3px 3px 0 0"></div>
+                </sc-for>
+              </div>
+              <div style="margin-top:6px; display:flex; justify-content:space-between; font-size:11px; color:#4A4A46"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+              <div style="margin-top:32px; font-size:13px; letter-spacing:0.5px; color:var(--ink); font-weight:600">By day of week</div>
+              <div style="margin-top:12px; display:flex; align-items:flex-end; gap:6px; height:64px">
+                <sc-for list="{{ dowBars }}" as="b" hint-placeholder-count="7">
+                  <div style="flex:1; background:{{ b.c }}; height:{{ b.h }}; min-height:2px; border-radius:3px 3px 0 0"></div>
+                </sc-for>
+              </div>
+              <div style="margin-top:6px; display:flex; gap:6px; font-size:11px; color:#4A4A46">
+                <sc-for list="{{ dowBars }}" as="b" hint-placeholder-count="7">
+                  <div style="flex:1; text-align:center">{{ b.l }}</div>
+                </sc-for>
+              </div>
+              <div style="margin-top:32px; font-size:13px; letter-spacing:0.5px; color:var(--ink); font-weight:600">Weekly total</div>
+              <div style="margin-top:12px; display:flex; align-items:flex-end; gap:6px; height:64px">
+                <sc-for list="{{ weekBars }}" as="b" hint-placeholder-count="10">
+                  <div style="flex:1; background:{{ b.c }}; height:{{ b.h }}; min-height:2px; border-radius:3px 3px 0 0"></div>
+                </sc-for>
+              </div>
+              <div style="margin-top:6px; display:flex; justify-content:space-between; font-size:11px; color:#4A4A46"><span>10 wk ago</span><span>this wk</span></div>
+              <div style="margin-top:32px; font-size:13px; letter-spacing:0.5px; color:var(--ink); font-weight:600">Daily heatmap</div>
+              <div style="margin-top:12px; display:grid; grid-template-columns:repeat(16, 1fr); gap:3px">
+                <sc-for list="{{ heatCells }}" as="h" hint-placeholder-count="112">
+                  <div style="aspect-ratio:1; border-radius:3px; background:{{ h.c }}"></div>
+                </sc-for>
+              </div>
+              <div style="margin-top:6px; display:flex; justify-content:space-between; font-size:11px; color:#4A4A46"><span>16 wk ago</span><span>today</span></div>
+              <sc-if value="{{ hasTagRows }}" hint-placeholder-val="{{ true }}">
+                <div style="margin-top:32px; font-size:13px; letter-spacing:0.5px; color:var(--ink); font-weight:600">This month by tag</div>
+                <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px">
+                  <sc-for list="{{ tagRows }}" as="t" hint-placeholder-count="3">
+                    <div style="display:flex; align-items:center; gap:10px">
+                      <div style="width:72px; font-size:12px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ t.name }}</div>
+                      <div style="flex:1"><div style="height:8px; width:{{ t.w }}; background:{{ t.c }}; border-radius:4px"></div></div>
+                      <div style="width:56px; text-align:right; font-family:'JetBrains Mono', monospace; font-size:12px">{{ t.v }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <div style="margin-top:36px; display:flex; justify-content:space-between; align-items:baseline">
+                <span style="font-size:13px; letter-spacing:0.5px; color:var(--ink); font-weight:600">History</span>
+                <span style="font-size:11px; color:#4A4A46">Hold an entry for actions</span>
+              </div>
+              <sc-if value="{{ hasHistory }}" hint-placeholder-val="{{ true }}">
+                <div style="margin-top:8px; display:flex; flex-direction:column">
+                  <sc-for list="{{ history }}" as="e" hint-placeholder-count="8">
+                    <div onPointerDown="{{ e.pd }}" onPointerUp="{{ e.pu }}" onPointerLeave="{{ e.pu }}" style="border-bottom:1px solid var(--line); padding:10px 0; display:flex; flex-direction:column; gap:4px">
+                      <div style="display:flex; justify-content:space-between; font-size:13px">
+                        <span style="font-family:'JetBrains Mono', monospace; color:var(--dim)">{{ e.date }}&nbsp;&nbsp;{{ e.range }}</span>
+                        <span style="font-family:'JetBrains Mono', monospace; color:{{ e.durColor }}">{{ e.dur }}</span>
+                      </div>
+                      <div style="display:flex; justify-content:space-between; font-size:12px">
+                        <span style="color:var(--accent)">{{ e.tag }}</span>
+                        <sc-if value="{{ e.failed }}" hint-placeholder-val="{{ false }}">
+                          <span style="color:var(--fail); letter-spacing:0.5px">failed</span>
+                        </sc-if>
+                      </div>
+                      <sc-if value="{{ e.open }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex; gap:20px; padding:6px 0 2px">
+                          <button onClick="{{ e.del }}" style="background:none; border:none; font-family:inherit; font-size:13px; letter-spacing:0.5px; color:var(--fail); padding:0">Delete</button>
+                          <button onClick="{{ e.editStart }}" style="background:none; border:none; font-family:inherit; font-size:13px; letter-spacing:0.5px; color:var(--accent); padding:0">Edit tag</button>
+                          <button onClick="{{ e.cancel }}" style="background:none; border:none; font-family:inherit; font-size:13px; letter-spacing:0.5px; color:var(--dim); padding:0">Cancel</button>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ e.editing }}" hint-placeholder-val="{{ false }}">
+                        <input value="{{ editTagVal }}" onChange="{{ editTagChange }}" onKeyDown="{{ editTagKey }}" onBlur="{{ editTagBlur }}" autoFocus="{{ true }}" placeholder="tag (empty to clear)" style="background:transparent; border:none; border-bottom:1px solid var(--accent); color:var(--ink); font-family:inherit; font-size:12px; padding:4px 0; width:180px">
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noHistory }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:16px; font-size:12px; color:#4A4A46; letter-spacing:0.5px">No sessions yet</div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#6FD6E8&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;options&quot;: [&quot;#6FD6E8&quot;, &quot;#FFB454&quot;, &quot;#C9A0FF&quot;, &quot;#EDE96B&quot;], &quot;section&quot;: &quot;Tokens&quot;}, &quot;includeFailed&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Data&quot;}, &quot;freshInstall&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Data&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const sessions = this._load('sessions', null);
+    this.state = {
+      now: Date.now(),
+      paneScreens: { left: 'clock', right: 'stats' },
+      sessions: sessions || [],
+      active: this._load('active', null),
+      lastMin: this._load('lastMin', 60),
+      tags: this._load('tags', ['maths', 'thesis', 'reading']),
+      curTag: null,
+      editingMin: false, minInput: '',
+      addingTag: false, tagInput: '',
+      openId: null, editId: null, editTagVal: '', chartRange: 'All'
+    };
+    if (!sessions) { this.state.sessions = this._seed(); this._save('sessions', this.state.sessions); }
+    this._swipe = {}; this._press = null; this._scrub = null;
+  }
+  _load(k, d) { try { const v = localStorage.getItem('focuslog.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+  _save(k, v) { try { localStorage.setItem('focuslog.' + k, JSON.stringify(v)); } catch (e) {} }
+  componentDidMount() { this._iv = setInterval(() => this.setState({ now: Date.now() }), 500); this._applyAccent(); }
+  componentDidUpdate() { this._applyAccent(); }
+  componentWillUnmount() { clearInterval(this._iv); }
+  _applyAccent() { document.documentElement.style.setProperty('--accent', this.props.accent ?? '#6FD6E8'); }
+  _seed() {
+    const out = []; const tagPool = ['maths', 'thesis', 'reading', null, null];
+    const mins = [30, 45, 60, 90]; const dayMs = 86400000;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const hours = [8, 9, 10, 11, 14, 15, 16, 17, 20, 21];
+    for (let d = 28; d >= 0; d--) {
+      const day = today.getTime() - d * dayMs;
+      const dow = new Date(day).getDay();
+      let n = (dow === 0 || dow === 6) ? (Math.random() < 0.5 ? 0 : 1) : 1 + Math.floor(Math.random() * 3);
+      if (d === 0) n = 2;
+      for (let i = 0; i < n; i++) {
+        const h = hours[Math.floor(Math.random() * hours.length)];
+        const start = day + h * 3600000 + Math.floor(Math.random() * 50) * 60000;
+        if (start > Date.now() - 3600000) continue;
+        const minimum = mins[Math.floor(Math.random() * mins.length)];
+        const fail = Math.random() < 0.15;
+        const durMin = fail ? Math.max(4, Math.floor(minimum * (0.2 + Math.random() * 0.6))) : minimum + Math.floor(Math.random() * 35);
+        out.push({
+          id: start + '-' + i, start_epoch_ms: start, end_epoch_ms: start + durMin * 60000,
+          duration_ms: durMin * 60000, minimum_ms: minimum * 60000,
+          tag: tagPool[Math.floor(Math.random() * tagPool.length)],
+          status: fail ? 'failed' : 'completed', seeded: true
+        });
+      }
+    }
+    out.sort((a, b) => a.start_epoch_ms - b.start_epoch_ms);
+    return out;
+  }
+  _fmtDur(ms) { const m = Math.round(ms / 60000); const h = Math.floor(m / 60); const mm = m % 60; return h ? h + 'h ' + String(mm).padStart(2, '0') + 'm' : mm + 'm'; }
+  _fmtC(ms) { const m = Math.round(ms / 60000); const h = Math.floor(m / 60); const mm = m % 60; return h ? h + 'h ' + String(mm).padStart(2, '0') + 'm' : mm + 'm'; }
+  _fmtMin(ms) { const m = Math.round(ms / 60000); return String(m).padStart(2, '0') + ':00'; }
+  _fmtClock(ms) { const s = Math.floor(ms / 1000); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, ss = s % 60; const p = n => String(n).padStart(2, '0'); return h ? h + ':' + p(m) + ':' + p(ss) : p(m) + ':' + p(ss); }
+  _setPane(key, scr) { this.setState(s => ({ paneScreens: { ...s.paneScreens, [key]: scr } })); }
+  _setMin(v) { const m = Math.min(240, Math.max(5, v)); this.setState({ lastMin: m }); this._save('lastMin', m); }
+  _end(status) {
+    const a = this.state.active; if (!a) return;
+    const end = Date.now();
+    const rec = { id: 's' + a.start, start_epoch_ms: a.start, end_epoch_ms: end, duration_ms: end - a.start, minimum_ms: a.minMs, tag: a.tag, status };
+    const ss = [...this.state.sessions, rec];
+    this.setState({ sessions: ss, active: null, curTag: null });
+    this._save('sessions', ss); this._save('active', null);
+  }
+  _commitEditTag() {
+    if (this.state.editId == null) return;
+    const t = this.state.editTagVal.trim() || null;
+    const ss = this.state.sessions.map(x => x.id === this.state.editId ? { ...x, tag: t } : x);
+    this.setState({ sessions: ss, editId: null, openId: null });
+    this._save('sessions', ss);
+  }
+  _commitNewTag() {
+    const t = this.state.tagInput.trim();
+    if (t) {
+      let tags = this.state.tags.filter(x => x !== t); tags.unshift(t); tags = tags.slice(0, 6);
+      this.setState({ tags, curTag: t, addingTag: false, tagInput: '' });
+      this._save('tags', tags);
+    } else this.setState({ addingTag: false, tagInput: '' });
+  }
+  renderVals() {
+    const st = this.state, now = st.now;
+    const includeFailed = this.props.includeFailed ?? false;
+    const fresh = this.props.freshInstall ?? false;
+    const visible = st.sessions.filter(s => !(fresh && s.seeded));
+    const countable = visible.filter(s => s.status === 'completed' || includeFailed);
+    const dayD = new Date(now); dayD.setHours(0, 0, 0, 0);
+    const d0 = dayD.getTime();
+    const w0 = d0 - ((new Date(now).getDay() + 6) % 7) * 86400000;
+    const nd = new Date(now);
+    const m0 = new Date(nd.getFullYear(), nd.getMonth(), 1).getTime();
+    const y0 = new Date(nd.getFullYear(), 0, 1).getTime();
+    const sum = a => a.reduce((x, s) => x + s.duration_ms, 0);
+    const since = t => sum(countable.filter(s => s.start_epoch_ms >= t));
+    const todayMs = since(d0), weekMs = since(w0);
+    const totals = [
+      { l: 'Today', v: this._fmtC(todayMs) }, { l: 'Week', v: this._fmtC(weekMs) },
+      { l: 'Month', v: this._fmtC(since(m0)) }, { l: 'Year', v: this._fmtC(since(y0)) },
+      { l: 'All', v: this._fmtC(sum(countable)) }
+    ];
+    const dimBar = 'color-mix(in oklab, var(--accent) 35%, transparent)';
+    const bars = (sums) => { const mx = Math.max(1, ...sums); return sums.map(v => ({ h: (v ? Math.max(4, Math.round(v / mx * 100)) : 0) + '%', c: v > 0 && v === mx ? 'var(--accent)' : dimBar })); };
+    const rangeDefs = [['Today', d0], ['Week', w0], ['Month', m0], ['Year', y0], ['All', 0]];
+    const ranges = rangeDefs.map(rd => ({ l: rd[0], fc: st.chartRange === rd[0] ? 'var(--accent)' : '#4A4A46', pick: () => this.setState({ chartRange: rd[0] }) }));
+    const rStart = (rangeDefs.find(rd => rd[0] === st.chartRange) || rangeDefs[4])[1];
+    const chartable = countable.filter(s => s.start_epoch_ms >= rStart);
+    const hourSum = Array(24).fill(0);
+    chartable.forEach(s => { hourSum[new Date(s.start_epoch_ms).getHours()] += s.duration_ms; });
+    const dowSum = Array(7).fill(0);
+    chartable.forEach(s => { dowSum[(new Date(s.start_epoch_ms).getDay() + 6) % 7] += s.duration_ms; });
+    const dowL = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const dowBars = bars(dowSum).map((b, i) => ({ ...b, l: dowL[i] }));
+    const weekSum = Array(10).fill(0);
+    countable.forEach(s => { const k = Math.floor((w0 + 7 * 86400000 - 1 - s.start_epoch_ms) / (7 * 86400000)); const idx = 9 - k; if (idx >= 0 && idx <= 9) weekSum[idx] += s.duration_ms; });
+    const heatStart = w0 - 15 * 7 * 86400000;
+    const dailySum = {};
+    countable.forEach(s => { const di = Math.floor((s.start_epoch_ms - heatStart) / 86400000); if (di >= 0 && di < 112) dailySum[di] = (dailySum[di] || 0) + s.duration_ms; });
+    const heatMax = Math.max(1, ...Object.values(dailySum), 1);
+    const heatCells = [];
+    for (let hr = 0; hr < 7; hr++) for (let hc = 0; hc < 16; hc++) {
+      const di = hc * 7 + hr; const t = heatStart + di * 86400000;
+      let col;
+      if (t > now) col = 'transparent';
+      else { const v = dailySum[di] || 0; col = v === 0 ? '#1B1B1E' : 'color-mix(in oklab, var(--accent) ' + Math.max(25, Math.round(v / heatMax * 100)) + '%, #16181A)'; }
+      heatCells.push({ c: col });
+    }
+    const byTag = {};
+    countable.filter(s => s.tag && s.start_epoch_ms >= m0).forEach(s => { byTag[s.tag] = (byTag[s.tag] || 0) + s.duration_ms; });
+    const tagEntries = Object.entries(byTag).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const tmax = Math.max(1, ...tagEntries.map(e => e[1]));
+    const tagRows = tagEntries.map(([name, v], i) => ({ name, v: this._fmtC(v), w: Math.max(2, Math.round(v / tmax * 100)) + '%', c: i === 0 ? 'var(--accent)' : dimBar }));
+    const history = visible.slice().sort((a, b) => b.start_epoch_ms - a.start_epoch_ms).slice(0, 60).map(s => {
+      const d = new Date(s.start_epoch_ms), e = new Date(s.end_epoch_ms);
+      const p = n => String(n).padStart(2, '0');
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      return {
+        id: s.id,
+        date: days[d.getDay()] + ' ' + p(d.getDate()) + '/' + p(d.getMonth() + 1),
+        range: p(d.getHours()) + ':' + p(d.getMinutes()) + '–' + p(e.getHours()) + ':' + p(e.getMinutes()),
+        dur: this._fmtDur(s.duration_ms),
+        durColor: s.status === 'failed' ? 'var(--dim)' : 'var(--ink)',
+        tag: s.tag || '', failed: s.status === 'failed',
+        open: st.openId === s.id && st.editId !== s.id,
+        editing: st.editId === s.id,
+        pd: () => { clearTimeout(this._press); this._press = setTimeout(() => this.setState({ openId: s.id, editId: null }), 500); },
+        pu: () => clearTimeout(this._press),
+        del: () => { const ss = this.state.sessions.filter(x => x.id !== s.id); this.setState({ sessions: ss, openId: null }); this._save('sessions', ss); },
+        editStart: () => this.setState({ editId: s.id, editTagVal: s.tag || '' }),
+        cancel: () => this.setState({ openId: null, editId: null })
+      };
+    });
+    const panes = ['left', 'right'].map(key => {
+      const scr = st.paneScreens[key];
+      return {
+        key, isClock: scr === 'clock', isStats: scr === 'stats', title: scr === 'clock' ? 'CLOCK' : 'STATS',
+        goStats: () => this._setPane(key, 'stats'), goClock: () => this._setPane(key, 'clock'),
+        sd: ev => { this._swipe[key] = ev.clientX; },
+        su: ev => { const dx = ev.clientX - (this._swipe[key] ?? ev.clientX); if (Math.abs(dx) > 70) this._setPane(key, scr === 'clock' ? 'stats' : 'clock'); }
+      };
+    });
+    const presets = [30, 45, 60, 90].map(m => ({
+      label: m + 'm', bc: st.lastMin === m ? 'var(--accent)' : 'var(--line)', fc: st.lastMin === m ? 'var(--accent)' : 'var(--dim)',
+      pick: () => { this._setMin(m); this.setState({ editingMin: false }); }
+    }));
+    const tagChips = st.tags.map(t => ({
+      name: t, bc: st.curTag === t ? 'var(--accent)' : 'var(--line)', fc: st.curTag === t ? 'var(--accent)' : 'var(--dim)',
+      pick: () => this.setState({ curTag: this.state.curTag === t ? null : t })
+    }));
+    const active = st.active;
+    const elapsedMs = active ? Math.max(0, now - active.start) : 0;
+    const pastMin = active ? elapsedMs >= active.minMs : false;
+    const p2 = n => String(n).padStart(2, '0');
+    return {
+      panes, totals, dowBars, tagRows, history, presets, tagChips, ranges, heatCells,
+      hourBars: bars(hourSum), weekBars: bars(weekSum),
+      hasTagRows: tagRows.length > 0, hasHistory: history.length > 0, noHistory: history.length === 0,
+      clockNow: p2(nd.getHours()) + ':' + p2(nd.getMinutes()),
+      isIdle: !active, isRunning: !!active, pastMin, notPastMin: !pastMin,
+      inGrace: !!active && !pastMin && elapsedMs < 30000,
+      afterGrace: !!active && !pastMin && elapsedMs >= 30000,
+      cancelSession: () => { this.setState({ active: null }); this._save('active', null); },
+      elapsed: this._fmtClock(elapsedMs),
+      digitColor: pastMin ? 'var(--good)' : 'var(--pre)',
+      digitSize: elapsedMs >= 3600000 ? '60px' : '80px',
+      minLabel: active ? 'Min ' + this._fmtMin(active.minMs) : '',
+      activeTag: active && active.tag ? active.tag : '', hasActiveTag: !!(active && active.tag),
+      todayLabel: this._fmtDur(todayMs), weekLabel: this._fmtDur(weekMs),
+      minDisplay: this._fmtMin(st.lastMin * 60000),
+      editingMin: st.editingMin, notEditingMin: !st.editingMin, minInput: st.minInput,
+      addingTag: st.addingTag, notAddingTag: !st.addingTag, tagInput: st.tagInput, editTagVal: st.editTagVal,
+      start: () => { const a = { start: Date.now(), minMs: this.state.lastMin * 60000, tag: this.state.curTag }; this.setState({ active: a }); this._save('active', a); },
+      stop: () => this._end('completed'),
+      terminate: () => this._end('failed'),
+      minDown: ev => { ev.stopPropagation(); this._scrub = { x: ev.clientX, v: this.state.lastMin, moved: false }; try { ev.target.setPointerCapture(ev.pointerId); } catch (e) {} },
+      minMove: ev => { if (!this._scrub) return; const dx = ev.clientX - this._scrub.x; if (Math.abs(dx) > 4) this._scrub.moved = true; if (this._scrub.moved) this._setMin(this._scrub.v + Math.round(dx / 5)); },
+      minUp: () => { if (this._scrub && !this._scrub.moved) this.setState({ editingMin: true, minInput: String(this.state.lastMin) }); this._scrub = null; },
+      minInputChange: ev => this.setState({ minInput: ev.target.value.replace(/[^0-9]/g, '') }),
+      minInputKey: ev => { if (ev.key === 'Enter') ev.target.blur(); if (ev.key === 'Escape') this.setState({ editingMin: false }); },
+      minInputBlur: () => { const v = parseInt(this.state.minInput, 10); if (!isNaN(v)) this._setMin(v); this.setState({ editingMin: false }); },
+      addTagStart: () => this.setState({ addingTag: true, tagInput: '' }),
+      tagInputChange: ev => this.setState({ tagInput: ev.target.value }),
+      tagInputKey: ev => { if (ev.key === 'Enter') this._commitNewTag(); if (ev.key === 'Escape') this.setState({ addingTag: false, tagInput: '' }); },
+      tagInputBlur: () => this._commitNewTag(),
+      editTagChange: ev => this.setState({ editTagVal: ev.target.value }),
+      editTagKey: ev => { if (ev.key === 'Enter') this._commitEditTag(); if (ev.key === 'Escape') this.setState({ editId: null, openId: null }); },
+      editTagBlur: () => this._commitEditTag(),
+      exportLog: () => {
+        const esc = v => v == null ? '' : String(v);
+        const rows = [['start_iso', 'end_iso', 'duration_min', 'minimum_min', 'tag', 'status']];
+        visible.forEach(s => rows.push([new Date(s.start_epoch_ms).toISOString(), new Date(s.end_epoch_ms).toISOString(), Math.round(s.duration_ms / 60000), Math.round(s.minimum_ms / 60000), esc(s.tag), s.status]));
+        const csv = rows.map(r => r.join(',')).join('\n');
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        const a = document.createElement('a'); a.href = url; a.download = 'focus-log.csv'; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
