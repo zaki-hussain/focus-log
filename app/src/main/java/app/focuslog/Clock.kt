@@ -120,7 +120,9 @@ private fun MinimumDial(store: Store) {
     } else {
         val density = LocalDensity.current.density
         Txt(
-            fmtMin(store.lastMinSec * 1_000L), 56.sp, Ink, FontWeight.Light, Mono, 0.sp,
+            fmtMin(store.lastMinSec * 1_000L),
+            if (store.lastMinSec >= 3600) 48.sp else 56.sp,
+            Ink, FontWeight.Light, Mono, 0.sp,
             modifier = Modifier
                 .pointerInput(Unit) {
                     var base = 0
@@ -135,7 +137,8 @@ private fun MinimumDial(store: Store) {
                 }
                 .pointerInput(Unit) {
                     detectTapGestures {
-                        input = fmtMin(store.lastMinSec * 1_000L)
+                        val s = store.lastMinSec
+                        input = "%d:%02d:%02d".format(s / 3600, s / 60 % 60, s % 60)
                         editing = true
                     }
                 },
@@ -208,7 +211,7 @@ private fun ColumnScope.Running(store: Store, active: Active, now: Long) {
             if (pastMin) Good else Pre,
             FontWeight.Light, Mono, 2.sp,
         )
-        Txt("Minimum ${fmtMin(active.minimum)}", 14.sp, Dim, family = Mono)
+        Txt("Minimum ${fmtMin(active.minimum).removeSuffix(" 00s")}", 14.sp, Dim, family = Mono)
         active.tag?.let { Txt(it, 14.sp, Accent) }
     }
     when {
