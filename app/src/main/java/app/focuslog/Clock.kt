@@ -197,7 +197,7 @@ private fun ColumnScope.Running(store: Store, active: Active, now: Long) {
             if (pastMin) Good else Pre,
             FontWeight.Light, Mono, 2.sp,
         )
-        Txt("Min ${fmtMin(active.minimum)}", 14.sp, Dim, family = Mono)
+        Txt("Minimum ${fmtMin(active.minimum)}", 14.sp, Dim, family = Mono)
         active.tag?.let { Txt(it, 14.sp, Accent) }
     }
     when {
