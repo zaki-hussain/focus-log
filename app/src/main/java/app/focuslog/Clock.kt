@@ -71,7 +71,7 @@ private fun ColumnScope.Idle(store: Store, goStats: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(30, 45, 60, 90).forEach { m ->
-                Chip("${m}m", store.lastMin == m) { store.setMinimum(m) }
+                Chip("${m}m", store.lastMinSec == m * 60) { store.setMinimum(m * 60) }
             }
         }
         Spacer(Modifier.height(40.dp))
@@ -93,7 +93,7 @@ private fun ColumnScope.Idle(store: Store, goStats: () -> Unit) {
     }
 }
 
-/** The big MM:SS minimum — drag horizontally to scrub, tap to type a value. */
+/** The big H:MM:SS minimum — drag horizontally to scrub minutes, tap to type a value. */
 @Composable
 private fun MinimumDial(store: Store) {
     var editing by remember { mutableStateOf(false) }
@@ -102,15 +102,15 @@ private fun MinimumDial(store: Store) {
         val focus = remember { FocusRequester() }
         BasicTextField(
             input,
-            { input = it.filter(Char::isDigit).take(3) },
+            { input = it.filter { c -> c.isDigit() || c == ':' }.take(7) },
             Modifier
-                .width(170.dp)
+                .width(220.dp)
                 .focusRequester(focus)
                 .drawBehind { drawLine(Accent, Offset(0f, size.height), Offset(size.width, size.height)) },
             textStyle = TextStyle(Ink, 48.sp, FontWeight.Light, fontFamily = Mono),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = {
-                input.toIntOrNull()?.let { store.setMinimum(it) }
+                parseMin(input)?.let { store.setMinimum(it) }
                 editing = false
             }),
             singleLine = true,
@@ -120,26 +120,37 @@ private fun MinimumDial(store: Store) {
     } else {
         val density = LocalDensity.current.density
         Txt(
-            fmtMin(store.lastMin * 60_000L), 56.sp, Ink, FontWeight.Light, Mono, 0.sp,
+            fmtMin(store.lastMinSec * 1_000L), 56.sp, Ink, FontWeight.Light, Mono, 0.sp,
             modifier = Modifier
                 .pointerInput(Unit) {
                     var base = 0
                     var acc = 0f
                     detectHorizontalDragGestures(
-                        onDragStart = { base = store.lastMin; acc = 0f },
+                        onDragStart = { base = store.lastMinSec; acc = 0f },
                         onHorizontalDrag = { _, dx ->
                             acc += dx
-                            store.setMinimum(base + (acc / (5 * density)).roundToInt())
+                            store.setMinimum(base + (acc / (5 * density)).roundToInt() * 60)
                         },
                     )
                 }
                 .pointerInput(Unit) {
                     detectTapGestures {
-                        input = store.lastMin.toString()
+                        input = fmtMin(store.lastMinSec * 1_000L)
                         editing = true
                     }
                 },
         )
+    }
+}
+
+/** "90" → minutes; "90:20" → minutes:seconds; "1:30:20" → hours:minutes:seconds. */
+private fun parseMin(text: String): Int? {
+    val parts = text.split(':').map { it.toIntOrNull() ?: return null }
+    return when (parts.size) {
+        1 -> parts[0] * 60
+        2 -> parts[0] * 60 + parts[1]
+        3 -> parts[0] * 3600 + parts[1] * 60 + parts[2]
+        else -> null
     }
 }
 
