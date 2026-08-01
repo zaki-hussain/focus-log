@@ -137,8 +137,11 @@ fun fmtDur(ms: Long): String {
     return if (m >= 60) "${m / 60}h ${"%02d".format(m % 60)}m" else "${m}m"
 }
 
-/** Minimum always in MM:SS, never rolling into hours: "90:00", "120:00" */
-fun fmtMin(ms: Long) = "%02d:00".format(ms / 60_000)
+/** Minimum in H:MM: "0:45", "1:30", "2:00" */
+fun fmtMin(ms: Long): String {
+    val m = ms / 60_000
+    return "%d:%02d".format(m / 60, m % 60)
+}
 
 /** Elapsed clock: "mm:ss", rolling to "h:mm:ss" past an hour */
 fun fmtElapsed(ms: Long): String {
