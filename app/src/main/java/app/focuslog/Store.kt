@@ -139,6 +139,9 @@ fun fmtDur(ms: Long): String {
     return if (m >= 60) "${m / 60}h ${"%02d".format(m % 60)}m" else "${m}m"
 }
 
+/** Decimal hours for footer totals: "0.0 hours", "1.5 hours" */
+fun fmtHours(ms: Long) = "%.1f hours".format(ms / 3_600_000.0)
+
 /** Minimum as a clock, hours always shown: "0:45:00", "1:30:20" */
 fun fmtMin(ms: Long): String {
     val s = ms / 1000
