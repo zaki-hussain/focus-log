@@ -140,7 +140,7 @@ fun Footer(store: Store, now: Long) {
     val today = store.sessions.totalSince(dayStart())
     val week = store.sessions.totalSince(weekStart())
     Txt(
-        "Today ${fmtDur(today)} · This week ${fmtDur(week)}",
+        "Today ${fmtHours(today)} · This week ${fmtHours(week)}",
         12.sp, Dim, align = TextAlign.Center,
         modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
     )

@@ -30,14 +30,16 @@ class Store(context: Context) {
         private set
     var active by mutableStateOf(loadActive())
         private set
-    var lastMin by mutableStateOf(sp.getInt("lastMin", 60))
+    var lastMinSec by mutableStateOf(sp.getInt("lastMinSec", sp.getInt("lastMin", 60) * 60))
         private set
     var tags by mutableStateOf(loadTags())
         private set
 
-    fun setMinimum(minutes: Int) {
-        lastMin = minutes.coerceIn(5, 240)
-        sp.edit().putInt("lastMin", lastMin).apply()
+    /** Clamps the minutes component to 5–240, leaving the seconds component alone. */
+    fun setMinimum(seconds: Int) {
+        val sec = seconds.mod(60)
+        lastMinSec = ((seconds - sec) / 60).coerceIn(5, 240) * 60 + sec
+        sp.edit().putInt("lastMinSec", lastMinSec).apply()
     }
 
     fun addTag(tag: String) {
@@ -46,7 +48,7 @@ class Store(context: Context) {
     }
 
     fun start(tag: String?) {
-        active = Active(System.currentTimeMillis(), lastMin * 60_000L, tag)
+        active = Active(System.currentTimeMillis(), lastMinSec * 1_000L, tag)
         saveActive()
     }
 
@@ -137,12 +139,29 @@ fun fmtDur(ms: Long): String {
     return if (m >= 60) "${m / 60}h ${"%02d".format(m % 60)}m" else "${m}m"
 }
 
-/** Minimum always in MM:SS, never rolling into hours: "90:00", "120:00" */
-fun fmtMin(ms: Long) = "%02d:00".format(ms / 60_000)
+/** Decimal hours for footer totals: "0.0 hours", "1.5 hours" */
+fun fmtHours(ms: Long) = "%.1f hours".format(ms / 3_600_000.0)
 
-/** Elapsed clock: "mm:ss", rolling to "h:mm:ss" past an hour */
+/** Minimum as a clock, hours always shown: "0:45:00", "1:30:20" */
+fun fmtMin(ms: Long): String {
+    val s = ms / 1000
+    return "%d:%02d:%02d".format(s / 3600, s / 60 % 60, s % 60)
+}
+
+/** Minimum in prose, zero parts omitted: "30 minutes", "1 hour", "2 hours 15 minutes 20 seconds" */
+fun fmtMinWords(ms: Long): String {
+    val s = ms / 1000
+    fun part(n: Long, unit: String) = if (n == 1L) "1 $unit" else "$n ${unit}s"
+    val parts = mutableListOf<String>()
+    if (s >= 3600) parts += part(s / 3600, "hour")
+    if (s / 60 % 60 > 0) parts += part(s / 60 % 60, "minute")
+    if (s % 60 > 0) parts += part(s % 60, "second")
+    return parts.joinToString(" ")
+}
+
+/** Elapsed clock: "5:23", rolling to "1:23:45" past an hour */
 fun fmtElapsed(ms: Long): String {
     val s = ms / 1000
     return if (s >= 3600) "%d:%02d:%02d".format(s / 3600, s / 60 % 60, s % 60)
-    else "%02d:%02d".format(s / 60, s % 60)
+    else "%d:%02d".format(s / 60, s % 60)
 }

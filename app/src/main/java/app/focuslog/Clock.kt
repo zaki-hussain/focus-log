@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,10 +35,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -47,7 +51,13 @@ import kotlin.math.roundToInt
 
 @Composable
 fun ClockScreen(store: Store, now: Long, goStats: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 20.dp)) {
+    val focusManager = LocalFocusManager.current
+    Column(
+        Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } }
+            .padding(horizontal = 24.dp, vertical = 20.dp)
+    ) {
         val active = store.active
         if (active == null) Idle(store, goStats) else Running(store, active, now)
         Footer(store, now)
@@ -71,7 +81,7 @@ private fun ColumnScope.Idle(store: Store, goStats: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(30, 45, 60, 90).forEach { m ->
-                Chip("${m}m", store.lastMin == m) { store.setMinimum(m) }
+                Chip("${m}m", store.lastMinSec == m * 60) { store.setMinimum(m * 60) }
             }
         }
         Spacer(Modifier.height(40.dp))
@@ -93,53 +103,76 @@ private fun ColumnScope.Idle(store: Store, goStats: () -> Unit) {
     }
 }
 
-/** The big MM:SS minimum — drag horizontally to scrub, tap to type a value. */
+/** The big H:MM:SS minimum — drag horizontally to scrub minutes, tap to type a value. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MinimumDial(store: Store) {
     var editing by remember { mutableStateOf(false) }
     var input by remember { mutableStateOf("") }
     if (editing) {
         val focus = remember { FocusRequester() }
+        var hadFocus by remember { mutableStateOf(false) }
+        var sawIme by remember { mutableStateOf(false) }
+        val imeVisible = WindowInsets.isImeVisible
         BasicTextField(
             input,
-            { input = it.filter(Char::isDigit).take(3) },
+            { input = it.filter { c -> c.isDigit() || c == ':' }.take(7) },
             Modifier
-                .width(170.dp)
+                .width(250.dp)
                 .focusRequester(focus)
-                .drawBehind { drawLine(Accent, Offset(0f, size.height), Offset(size.width, size.height)) },
-            textStyle = TextStyle(Ink, 48.sp, FontWeight.Light, fontFamily = Mono),
+                .onFocusChanged {
+                    if (it.isFocused) hadFocus = true
+                    else if (hadFocus) editing = false // tapped away — discard, keep old value
+                },
+            textStyle = TextStyle(Ink, 56.sp, FontWeight.Light, fontFamily = Mono),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = {
-                input.toIntOrNull()?.let { store.setMinimum(it) }
+                parseMin(input)?.let { store.setMinimum(it) }
                 editing = false
             }),
             singleLine = true,
             cursorBrush = SolidColor(Accent),
         )
         LaunchedEffect(Unit) { focus.requestFocus() }
+        LaunchedEffect(imeVisible) {
+            if (imeVisible) sawIme = true
+            else if (sawIme) editing = false // keyboard closed via back — discard
+        }
     } else {
         val density = LocalDensity.current.density
         Txt(
-            fmtMin(store.lastMin * 60_000L), 56.sp, Ink, FontWeight.Light, Mono, 0.sp,
+            fmtMin(store.lastMinSec * 1_000L), 56.sp, Ink, FontWeight.Light, Mono, 0.sp,
             modifier = Modifier
                 .pointerInput(Unit) {
                     var base = 0
                     var acc = 0f
                     detectHorizontalDragGestures(
-                        onDragStart = { base = store.lastMin; acc = 0f },
+                        onDragStart = { base = store.lastMinSec; acc = 0f },
                         onHorizontalDrag = { _, dx ->
                             acc += dx
-                            store.setMinimum(base + (acc / (5 * density)).roundToInt())
+                            store.setMinimum(base + (acc / (5 * density)).roundToInt() * 60)
                         },
                     )
                 }
                 .pointerInput(Unit) {
                     detectTapGestures {
-                        input = store.lastMin.toString()
+                        val s = store.lastMinSec
+                        input = "%d:%02d:%02d".format(s / 3600, s / 60 % 60, s % 60)
                         editing = true
                     }
                 },
         )
+    }
+}
+
+/** "90" → minutes; "90:20" → minutes:seconds; "1:30:20" → hours:minutes:seconds. */
+private fun parseMin(text: String): Int? {
+    val parts = text.split(':').map { it.toIntOrNull() ?: return null }
+    return when (parts.size) {
+        1 -> parts[0] * 60
+        2 -> parts[0] * 60 + parts[1]
+        3 -> parts[0] * 3600 + parts[1] * 60 + parts[2]
+        else -> null
     }
 }
 
@@ -197,7 +230,7 @@ private fun ColumnScope.Running(store: Store, active: Active, now: Long) {
             if (pastMin) Good else Pre,
             FontWeight.Light, Mono, 2.sp,
         )
-        Txt("Min ${fmtMin(active.minimum)}", 14.sp, Dim, family = Mono)
+        Txt("Minimum ${fmtMinWords(active.minimum)}", 14.sp, Dim)
         active.tag?.let { Txt(it, 14.sp, Accent) }
     }
     when {
